@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<title>StockSaver</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08100a;--bg2:#0d160f;--sur:#111a13;--sur2:#18241a;
+  --bdr:#1e2e20;--bdr2:#28402a;--txt:#e4ede6;--txt2:#adc4b0;--muted:#5a7560;
+  --grn:#4caf6e;--gdim:rgba(76,175,110,.13);--gbdr:rgba(76,175,110,.28);
+  --grn2:#7dd49a;--gold:#c9a84c;--godim:rgba(201,168,76,.12);--gobdr:rgba(201,168,76,.28);
+  --red:#e05555;--rdim:rgba(224,85,85,.1);--rbdr:rgba(224,85,85,.28);
+  --blue:#5b9bd5;--bdim:rgba(91,155,213,.1);--bbdr:rgba(91,155,213,.25);
+  --ora:#d4845a;--r:10px;--rl:14px
+}
+body{background:var(--bg);color:var(--txt);font-family:'Instrument Sans',sans-serif;min-height:100vh;font-size:14px;line-height:1.55}
+input,textarea,button,select{font-family:'Instrument Sans',sans-serif}
+button{cursor:pointer}
+
+/* ── Loading ── */
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:20px}
+.ll{font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:500;color:var(--grn);letter-spacing:3px}
+.ls{font-size:11px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+.sp{width:24px;height:24px;border:2px solid var(--bdr2);border-top-color:var(--grn);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Onboarding ── */
+#onboard{display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px;background:var(--bg)}
+.ow{width:100%;max-width:500px}
+.omark{font-family:'Cormorant Garamond',serif;font-size:11px;font-weight:500;color:var(--grn);letter-spacing:3px;text-transform:uppercase;margin-bottom:28px;display:block}
+.oh{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:500;line-height:1.2;margin-bottom:8px}
+.osub{font-size:12px;color:var(--muted);margin-bottom:28px;line-height:1.7}
+.ind-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+@media(min-width:440px){.ind-grid{grid-template-columns:repeat(3,1fr)}}
+.ind-card{background:var(--sur);border:1.5px solid var(--bdr);border-radius:var(--rl);padding:16px 12px;cursor:pointer;transition:all .2s;text-align:center;user-select:none}
+.ind-card:hover{border-color:var(--gbdr);background:var(--gdim)}
+.ind-card.on{border-color:var(--grn);background:var(--gdim);box-shadow:0 0 0 1px var(--grn)}
+.ind-ico{font-size:28px;margin-bottom:8px}
+.ind-name{font-size:12px;font-weight:600;color:var(--txt2)}
+.ind-desc{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4}
+
+/* ── Auth ── */
+#auth{display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px;background:var(--bg)}
+.aw{width:100%;max-width:340px}
+.amark{font-family:'Cormorant Garamond',serif;font-size:11px;color:var(--grn);letter-spacing:3px;text-transform:uppercase;margin-bottom:40px;display:block}
+.ah{font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:500;line-height:1.1;margin-bottom:8px}
+.asub{font-size:12px;color:var(--muted);margin-bottom:28px;line-height:1.7}
+.afl{margin-bottom:28px}
+.afeat{display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-bottom:1px solid var(--bdr)}
+.afeat:last-child{border-bottom:none}
+.adot{width:5px;height:5px;border-radius:50%;background:var(--grn);margin-top:8px;flex-shrink:0}
+.afeat-txt{font-size:12px;color:var(--txt2);line-height:1.5}
+#btn-gsi{width:100%;padding:13px 18px;background:var(--sur);border:1px solid var(--bdr2);border-radius:var(--r);font-size:13px;font-weight:500;color:var(--txt);display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s}
+#btn-gsi:hover{background:var(--sur2);border-color:var(--gbdr)}
+#btn-gsi:disabled{opacity:.5;cursor:not-allowed}
+#auth-err{font-size:11px;color:var(--red);margin-top:10px;padding:8px 12px;background:var(--rdim);border:1px solid var(--rbdr);border-radius:7px;line-height:1.5;display:none}
+.an{font-size:11px;color:var(--muted);margin-top:14px;text-align:center;line-height:1.7}
+
+/* ── App shell ── */
+#app{display:none;min-height:100vh}
+.topbar{background:var(--bg);border-bottom:1px solid var(--bdr);padding:0 14px;display:flex;align-items:center;justify-content:space-between;height:50px;position:sticky;top:0;z-index:200}
+.tbrand{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;color:var(--grn);letter-spacing:2px}
+.tind{font-size:10px;color:var(--muted);margin-left:8px;padding:2px 8px;background:var(--gdim);border:1px solid var(--gbdr);border-radius:99px;white-space:nowrap}
+.tright{display:flex;align-items:center;gap:6px}
+.uchip{display:flex;align-items:center;gap:6px;padding:3px 9px 3px 3px;border:1px solid var(--bdr);border-radius:99px}
+.uav{width:22px;height:22px;border-radius:50%;background:var(--gdim);border:1px solid var(--gbdr);color:var(--grn);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.uav img{width:100%;height:100%;object-fit:cover}
+.uname{max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--muted)}
+.bghost{padding:4px 10px;border-radius:6px;border:1px solid var(--bdr);background:transparent;font-size:11px;color:var(--muted);transition:all .15s}
+.bghost:hover{color:var(--txt2);border-color:var(--bdr2)}
+.wrap{max-width:1100px;margin:0 auto;padding:16px 12px 100px}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:2px;background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:3px;margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tb{flex-shrink:0;padding:7px 11px;border-radius:7px;border:none;background:transparent;color:var(--muted);font-size:10px;font-weight:500;cursor:pointer;white-space:nowrap;letter-spacing:.4px;text-transform:uppercase;font-family:inherit;transition:all .15s}
+.tb.on{background:var(--sur2);color:var(--grn);border:1px solid var(--gbdr)}
+.hide{display:none!important}
+
+/* ── Shared components ── */
+.card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--rl);padding:15px;margin-bottom:12px}
+.ct{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px}
+.hint{font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.7}
+.lbl{display:block;font-size:10px;font-weight:600;color:var(--muted);margin-bottom:4px;letter-spacing:.7px;text-transform:uppercase}
+.inp{width:100%;background:var(--bg2);border:1px solid var(--bdr);border-radius:7px;color:var(--txt);font-size:13px;padding:8px 11px;outline:none;transition:border .15s}
+.inp:focus{border-color:var(--gbdr)}
+textarea.inp{resize:vertical;min-height:70px;line-height:1.55}
+.fg{margin-bottom:10px}
+.ferr{color:var(--red);font-size:10px;margin-top:3px;display:none}
+.row{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+@media(max-width:500px){.g2{grid-template-columns:1fr}.g3{grid-template-columns:1fr 1fr}}
+@media(max-width:340px){.g3{grid-template-columns:1fr}}
+
+/* ── Buttons ── */
+.btn{padding:8px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:5px;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit}
+.btn:active{opacity:.7}
+.bp{background:var(--grn);color:#08100a}
+.bs{background:var(--sur2);color:var(--txt2);border:1px solid var(--bdr2)}
+.bd{background:var(--rdim);color:var(--red);border:1px solid var(--rbdr)}
+.bw{background:var(--godim);color:var(--gold);border:1px solid var(--gobdr)}
+.bx{padding:5px 9px;font-size:10px;border-radius:6px}
+
+/* ── Stats row ── */
+.srow{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}
+.sbox{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:10px 14px;flex:1;min-width:70px}
+.snum{font-size:22px;font-weight:600;font-family:'Cormorant Garamond',serif;color:var(--grn)}
+.slbl{font-size:9px;color:var(--muted);letter-spacing:.4px;text-transform:uppercase;margin-top:1px}
+
+/* ── Stock status badge ── */
+.sbadge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;letter-spacing:.4px;text-transform:uppercase;display:inline-block}
+.s-high{background:rgba(76,175,110,.15);color:var(--grn)}
+.s-low{background:rgba(201,168,76,.15);color:var(--gold)}
+.s-out{background:rgba(224,85,85,.15);color:var(--red)}
+
+/* ── Alert banner ── */
+.alert-bar{background:var(--rdim);border:1px solid var(--rbdr);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;display:none;align-items:center;gap:10px;flex-wrap:wrap}
+.alert-bar.show{display:flex}
+.alert-txt{font-size:12px;color:var(--red);flex:1;line-height:1.5}
+
+/* ── Dashboard ── */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:500px){.dash-grid{grid-template-columns:1fr}}
+.dash-card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--rl);padding:14px}
+.low-item{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bdr);font-size:12px;gap:8px}
+.low-item:last-child{border-bottom:none}
+.low-name{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.low-qty{font-size:11px;font-weight:700;flex-shrink:0}
+.cat-bar-row{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.cat-bar-lbl{font-size:11px;color:var(--txt2);width:90px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cat-bar-wrap{flex:1;background:var(--bg2);border-radius:99px;height:6px;overflow:hidden}
+.cat-bar{height:100%;border-radius:99px;background:var(--grn);transition:width .4s}
+.cat-bar-cnt{font-size:10px;color:var(--muted);width:22px;text-align:right;flex-shrink:0}
+
+/* ── Recent activity ── */
+.act-item{display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid var(--bdr)}
+.act-item:last-child{border-bottom:none}
+.act-ico{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.act-ico.in{background:var(--gdim);border:1px solid var(--gbdr)}
+.act-ico.out{background:var(--rdim);border:1px solid var(--rbdr)}
+.act-ico.adj{background:var(--godim);border:1px solid var(--gobdr)}
+.act-name{font-size:12px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.act-meta{font-size:10px;color:var(--muted)}
+.act-qty{font-size:12px;font-weight:700;flex-shrink:0}
+.act-qty.in{color:var(--grn)}
+.act-qty.out{color:var(--red)}
+.act-qty.adj{color:var(--gold)}
+
+/* ── Products layout ── */
+.prod-layout{display:flex;gap:12px;align-items:flex-start}
+.filter-col{width:175px;flex-shrink:0;position:sticky;top:66px}
+.prod-col{flex:1;min-width:0}
+@media(max-width:640px){.prod-layout{flex-direction:column}.filter-col{width:100%;position:static}}
+.filter-card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--rl);padding:11px;margin-bottom:10px}
+.fct{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:9px}
+.fi{padding:5px 8px;border-radius:6px;cursor:pointer;font-size:11px;color:var(--muted);transition:all .15s;display:flex;align-items:center;justify-content:space-between;gap:4px;user-select:none}
+.fi:hover{background:var(--sur2);color:var(--txt2)}
+.fi.on{background:var(--gdim);color:var(--grn);font-weight:600}
+.fi.sub{padding-left:16px;font-size:10px}
+.fi-cnt{font-size:9px;background:var(--bdr2);padding:1px 5px;border-radius:99px;flex-shrink:0}
+.fi.on .fi-cnt{background:var(--gbdr);color:var(--grn)}
+
+/* ── Product cards ── */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.pc{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--rl);padding:14px;transition:border-color .15s}
+.pc.low-stock{border-left:3px solid var(--gold)}
+.pc.out-stock{border-left:3px solid var(--red)}
+.pc-path{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.7px;text-transform:uppercase;margin-bottom:5px}
+.pc-name{font-size:13px;font-weight:600;margin-bottom:4px;line-height:1.3}
+.pc-qty{font-size:26px;font-weight:600;font-family:'Cormorant Garamond',serif;color:var(--grn);line-height:1;margin:6px 0 2px}
+.pc-unit{font-size:10px;color:var(--muted)}
+.pc-thresh{font-size:10px;margin-top:5px}
+.pc-thresh.warn{color:var(--gold)}
+.pc-thresh.danger{color:var(--red)}
+.pc-acts{display:flex;gap:4px;margin-top:10px;flex-wrap:wrap}
+
+/* ── Search bar ── */
+.sbar{display:flex;gap:7px;margin-bottom:12px}
+.swrap{position:relative;flex:1}
+.swrap .inp{padding-left:30px}
+.sico{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;pointer-events:none}
+
+/* ── Drop zone ── */
+.dz{border:1.5px dashed var(--bdr2);border-radius:var(--r);padding:24px 16px;text-align:center;cursor:pointer;color:var(--muted);font-size:12px;transition:all .15s}
+.dz:hover,.dz.drag{border-color:var(--gbdr);background:var(--gdim);color:var(--grn2)}
+.dz-ico{font-size:26px;margin-bottom:6px;opacity:.6}
+.dz-title{font-weight:600;font-size:12px;margin-bottom:2px}
+.dz-sub{font-size:11px;opacity:.6}
+
+/* ── Groq key bar ── */
+.krow{background:var(--gdim);border:1px solid var(--gbdr);border-radius:var(--r);padding:9px 12px;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kinp{flex:1;min-width:110px;background:var(--bg2);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);font-size:11px;padding:6px 9px;outline:none;font-family:monospace}
+
+/* ── Status boxes ── */
+.stbox{margin-top:10px;padding:9px 13px;border-radius:7px;font-size:12px;line-height:1.5;display:none}
+.stok{background:var(--gdim);border:1px solid var(--gbdr);color:var(--grn);display:block}
+.ster{background:var(--rdim);border:1px solid var(--rbdr);color:var(--red);display:block}
+.stwn{background:var(--godim);border:1px solid var(--gobdr);color:var(--gold);display:block}
+.stld{background:var(--sur2);border:1px solid var(--bdr);color:var(--muted);display:block}
+
+/* ── Preview items ── */
+.pv-list{margin-top:12px}
+.pv-item{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);padding:12px;margin-bottom:8px}
+.pv-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:7px}
+.pv-name{font-size:13px;font-weight:600;line-height:1.3}
+.pv-existing{font-size:10px;color:var(--muted);margin-top:2px}
+.pv-new{font-size:10px;color:var(--blue);margin-top:2px}
+.pv-qty{font-size:13px;font-weight:700;white-space:nowrap;flex-shrink:0}
+.pv-qty.qin{color:var(--grn)}
+.pv-qty.qout{color:var(--red)}
+.pv-path{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:6px}
+.pv-tag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--sur2);color:var(--txt2);border:1px solid var(--bdr2)}
+.pv-arr{font-size:10px;color:var(--muted)}
+.pv-after{font-size:11px;margin-top:5px;font-weight:600}
+.pv-after.ok{color:var(--grn)}
+.pv-after.warn{color:var(--gold)}
+.pv-after.danger{color:var(--red)}
+.pv-edit-form{display:none;background:var(--sur);border:1px solid var(--bdr2);border-radius:var(--r);padding:11px;margin-top:9px}
+.pv-edit-form.open{display:block}
+.pv-remove{background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;padding:2px;flex-shrink:0;line-height:1}
+
+/* ── History ── */
+.hist-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--bdr)}
+.hist-item:last-child{border-bottom:none}
+.hist-ico{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.hist-ico.in{background:var(--gdim);border:1px solid var(--gbdr)}
+.hist-ico.out{background:var(--rdim);border:1px solid var(--rbdr)}
+.hist-ico.adj{background:var(--godim);border:1px solid var(--gobdr)}
+.hist-info{flex:1;min-width:0}
+.hist-name{font-size:12px;font-weight:600;margin-bottom:2px}
+.hist-meta{font-size:10px;color:var(--muted);line-height:1.5}
+.hist-qty{font-size:13px;font-weight:700;flex-shrink:0}
+.hist-qty.in{color:var(--grn)}
+.hist-qty.out{color:var(--red)}
+.hist-qty.adj{color:var(--gold)}
+.hfbtn{font-size:10px;font-weight:600;padding:4px 10px;border-radius:6px;border:1px solid var(--bdr2);background:var(--sur2);color:var(--muted);cursor:pointer;transition:all .15s}
+.hfbtn.on{background:var(--gdim);border-color:var(--gbdr);color:var(--grn)}
+
+/* ── Admin/Team ── */
+.member-row{display:flex;align-items:center;gap:9px;padding:8px 11px;background:var(--bg2);border-radius:7px;margin-bottom:5px}
+.member-email{flex:1;font-size:11px;color:var(--txt2);font-family:monospace;word-break:break-all}
+.role-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;text-transform:uppercase;letter-spacing:.4px;flex-shrink:0}
+.rb-admin{background:var(--gdim);color:var(--grn)}
+.rb-member{background:var(--bdim);color:var(--blue)}
+
+/* ── Modals ── */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:flex-end;justify-content:center;z-index:1000}
+.ov.open{display:flex}
+.modal{background:var(--sur);border:1px solid var(--bdr2);border-radius:var(--rl) var(--rl) 0 0;padding:22px;width:100%;max-height:92vh;overflow-y:auto}
+@media(min-width:560px){.ov{align-items:center;padding:16px}.modal{border-radius:var(--rl);max-width:450px}}
+.modal-handle{width:36px;height:3px;background:var(--bdr2);border-radius:99px;margin:0 auto 16px}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:500;margin-bottom:14px}
+
+/* ── Misc ── */
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:3000;padding:10px 18px;border-radius:9px;font-size:12px;font-weight:600;color:#fff;box-shadow:0 8px 30px rgba(0,0,0,.45);display:none;white-space:nowrap;pointer-events:none}
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.emico{font-size:34px;margin-bottom:10px;opacity:.4}
+.emtit{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:500;color:var(--txt2);margin-bottom:5px}
+.emsub{font-size:12px;line-height:1.7}
+.divider{display:flex;align-items:center;gap:10px;margin:14px 0;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.7px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.imgpv{max-width:100%;max-height:140px;border-radius:8px;border:1px solid var(--bdr);object-fit:contain;margin-top:10px;display:none}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="ll">STOCKSAVER</div>
+  <div class="sp"></div>
+  <div class="ls" id="load-msg">Starting up…</div>
+</div>
+
+<!-- ONBOARDING -->
+<div id="onboard">
+  <div class="ow">
+    <span class="omark">StockSaver</span>
+    <div class="oh">What kind of business<br/>do you run?</div>
+    <div class="osub">We'll pre-load smart AI categories tailored to your industry so you can start scanning immediately.</div>
+    <div class="ind-grid">
+      <div class="ind-card" data-ind="plant"><div class="ind-ico">🌿</div><div class="ind-name">Plant Shop</div><div class="ind-desc">Plants, pots, soil, tools</div></div>
+      <div class="ind-card" data-ind="grocery"><div class="ind-ico">🛒</div><div class="ind-name">Grocery</div><div class="ind-desc">Food, beverages, household</div></div>
+      <div class="ind-card" data-ind="clothing"><div class="ind-ico">👗</div><div class="ind-name">Clothing</div><div class="ind-desc">Apparel, footwear, accessories</div></div>
+      <div class="ind-card" data-ind="pharmacy"><div class="ind-ico">💊</div><div class="ind-name">Pharmacy</div><div class="ind-desc">Medicines, equipment, supplements</div></div>
+      <div class="ind-card" data-ind="electronics"><div class="ind-ico">📱</div><div class="ind-name">Electronics</div><div class="ind-desc">Devices, accessories, parts</div></div>
+      <div class="ind-card" data-ind="custom"><div class="ind-ico">⚙️</div><div class="ind-name">Custom</div><div class="ind-desc">AI learns from your stock</div></div>
+    </div>
+    <button class="btn bp" id="btn-ind-ok" disabled style="width:100%;padding:13px;font-size:13px">Continue →</button>
+  </div>
+</div>
+
+<!-- AUTH -->
+<div id="auth">
+  <div class="aw">
+    <span class="amark">StockSaver</span>
+    <div class="ah">Smart stock,<br/>zero guesswork.</div>
+    <div class="asub">AI-powered inventory management. Scan invoices, track stock levels, get low-stock alerts.</div>
+    <div class="afl">
+      <div class="afeat"><div class="adot"></div><div class="afeat-txt">AI scans invoices &amp; receipts — adds or deducts stock automatically</div></div>
+      <div class="afeat"><div class="adot"></div><div class="afeat-txt">3-level smart filters: Category → Subcategory → Product</div></div>
+      <div class="afeat"><div class="adot"></div><div class="afeat-txt">Preview before confirming — you always stay in control</div></div>
+      <div class="afeat"><div class="adot"></div><div class="afeat-txt">Low stock alerts, history log &amp; team collaboration</div></div>
+    </div>
+    <button id="btn-gsi">
+      <svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Continue with Google
+    </button>
+    <div id="auth-err"></div>
+    <div class="an">Your data is stored securely in Firebase.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:0">
+      <div class="tbrand">STOCKSAVER</div>
+      <span class="tind" id="t-ind"></span>
+    </div>
+    <div class="tright">
+      <div class="uchip">
+        <div class="uav" id="uav"></div>
+        <span class="uname" id="uname"></span>
+      </div>
+      <button class="bghost" id="btn-out">Sign out</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="tabs">
+      <button class="tb on" data-tab="dash">Dashboard</button>
+      <button class="tb" data-tab="in">📦 Stock In</button>
+      <button class="tb" data-tab="out">📤 Stock Out</button>
+      <button class="tb" data-tab="manual">＋ Manual</button>
+      <button class="tb" data-tab="products">Products</button>
+      <button class="tb" data-tab="history">History</button>
+      <button class="tb hide" data-tab="team" id="tab-team">Team</button>
+      <button class="tb hide" data-tab="admin" id="tab-admin">Admin ⚙</button>
+    </div>
+
+    <!-- ── DASHBOARD ── -->
+    <div id="p-dash">
+      <div class="alert-bar" id="alert-bar">
+        <span style="font-size:16px">⚠️</span>
+        <span class="alert-txt" id="alert-txt"></span>
+        <button class="btn bd bx" onclick="switchTab('products')">View →</button>
+      </div>
+      <div class="srow">
+        <div class="sbox"><div class="snum" id="d-total">0</div><div class="slbl">Products</div></div>
+        <div class="sbox"><div class="snum" id="d-high" style="color:var(--grn)">0</div><div class="slbl">High Stock</div></div>
+        <div class="sbox"><div class="snum" id="d-low" style="color:var(--gold)">0</div><div class="slbl">Low Stock</div></div>
+        <div class="sbox"><div class="snum" id="d-out" style="color:var(--red)">0</div><div class="slbl">Out of Stock</div></div>
+      </div>
+      <div class="dash-grid">
+        <div class="dash-card">
+          <div class="ct">⚠️ Needs Attention</div>
+          <div id="d-low-list"><div class="empty" style="padding:16px 0"><div class="emsub">All products well stocked 🎉</div></div></div>
+        </div>
+        <div class="dash-card">
+          <div class="ct">📋 Recent Activity</div>
+          <div id="d-recent"><div class="empty" style="padding:16px 0"><div class="emsub">No activity yet</div></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ct">📊 Stock by Category</div>
+        <div id="d-cats"><div class="emsub" style="color:var(--muted);font-size:12px">No products added yet</div></div>
+      </div>
+    </div>
+
+    <!-- ── STOCK IN ── -->
+    <div id="p-in" class="hide">
+      <div class="krow">
+        <span style="font-size:10px;color:var(--muted);font-weight:600;white-space:nowrap">GROQ KEY</span>
+        <input class="kinp" id="api-key" type="password" placeholder="gsk_…"/>
+        <button class="btn bs bx" id="btn-kt">Show</button>
+      </div>
+      <div class="card">
+        <div class="ct">📦 Stock In — New Delivery</div>
+        <p class="hint">Upload a photo of your delivery note or invoice, or paste the text. AI will detect all products and quantities.</p>
+        <div class="divider">Scan Image</div>
+        <div class="dz" id="in-dz">
+          <div id="in-dzi"><div class="dz-ico">📷</div><div class="dz-title">Drop delivery note or invoice photo</div><div class="dz-sub">or use buttons below</div></div>
+        </div>
+        <img class="imgpv" id="in-imgpv" alt=""/>
+        <div class="row" style="margin-top:10px"><button class="btn bp" id="btn-in-gal">📷 Gallery</button><button class="btn bs" id="btn-in-cam">Camera</button></div>
+        <input type="file" id="in-gal-f" accept="image/*" style="display:none"/>
+        <input type="file" id="in-cam-f" accept="image/*" capture="environment" style="display:none"/>
+        <div class="divider" style="margin-top:14px">Or Paste Text</div>
+        <div class="fg"><textarea class="inp" id="in-txt" rows="4" placeholder="Paste your delivery note, product list, or any text with product names and quantities…"></textarea></div>
+        <div class="row"><button class="btn bp" id="btn-in-detect">🤖 Detect Products</button></div>
+        <div class="stbox" id="in-status"></div>
+      </div>
+      <div class="card hide" id="in-pv-card">
+        <div class="ct">Preview — <span id="in-pv-cnt">0</span> products detected</div>
+        <p class="hint" style="color:var(--grn2)">✓ Review each product. Edit category path or quantity if needed, then confirm to add to stock.</p>
+        <div id="in-pv-list" class="pv-list"></div>
+        <div class="row">
+          <button class="btn bp" id="btn-in-confirm">✓ Add to Stock</button>
+          <button class="btn bs" id="btn-in-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STOCK OUT ── -->
+    <div id="p-out" class="hide">
+      <div class="card">
+        <div class="ct">📤 Stock Out — Record Sales / Dispatch</div>
+        <p class="hint">Upload a photo of your sales receipt or dispatch note. AI detects products and deducts from stock.</p>
+        <div class="divider">Scan Image</div>
+        <div class="dz" id="out-dz">
+          <div id="out-dzi"><div class="dz-ico">🧾</div><div class="dz-title">Drop sales receipt or dispatch note</div><div class="dz-sub">or use buttons below</div></div>
+        </div>
+        <img class="imgpv" id="out-imgpv" alt=""/>
+        <div class="row" style="margin-top:10px"><button class="btn bd" id="btn-out-gal">📷 Gallery</button><button class="btn bs" id="btn-out-cam">Camera</button></div>
+        <input type="file" id="out-gal-f" accept="image/*" style="display:none"/>
+        <input type="file" id="out-cam-f" accept="image/*" capture="environment" style="display:none"/>
+        <div class="divider" style="margin-top:14px">Or Paste Text</div>
+        <div class="fg"><textarea class="inp" id="out-txt" rows="4" placeholder="Paste your sales receipt, order list, or any text with product names and quantities…"></textarea></div>
+        <div class="row"><button class="btn bd" id="btn-out-detect">🤖 Detect Products</button></div>
+        <div class="stbox" id="out-status"></div>
+      </div>
+      <div class="card hide" id="out-pv-card">
+        <div class="ct">Preview — <span id="out-pv-cnt">0</span> products to deduct</div>
+        <p class="hint" style="color:var(--red)">⚠ Review the quantities to deduct. Check the "after deduction" values carefully.</p>
+        <div id="out-pv-list" class="pv-list"></div>
+        <div class="row">
+          <button class="btn bd" id="btn-out-confirm">✓ Deduct from Stock</button>
+          <button class="btn bs" id="btn-out-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MANUAL ── -->
+    <div id="p-manual" class="hide">
+      <div class="card">
+        <div class="ct">＋ Add New Product</div>
+        <div class="g2">
+          <div class="fg"><label class="lbl">Product Name *</label><input class="inp" id="mn-name" placeholder="e.g. Monstera Deliciosa"/><div class="ferr" id="ferr-mn">Required</div></div>
+          <div class="fg"><label class="lbl">Quantity *</label><input class="inp" id="mn-qty" type="number" placeholder="0" min="0"/><div class="ferr" id="ferr-mq">Required</div></div>
+        </div>
+        <div class="g3">
+          <div class="fg"><label class="lbl">Category</label><input class="inp" id="mn-cat" list="mn-cats" placeholder="e.g. Plants"/><datalist id="mn-cats"></datalist></div>
+          <div class="fg"><label class="lbl">Subcategory</label><input class="inp" id="mn-sub" list="mn-subs" placeholder="e.g. Indoor"/><datalist id="mn-subs"></datalist></div>
+          <div class="fg"><label class="lbl">Unit</label><input class="inp" id="mn-unit" placeholder="pcs, kg, L…"/></div>
+        </div>
+        <div class="g2">
+          <div class="fg"><label class="lbl">Low Stock Alert (qty)</label><input class="inp" id="mn-thresh" type="number" placeholder="e.g. 10" min="0"/></div>
+          <div class="fg"><label class="lbl">Notes</label><input class="inp" id="mn-notes" placeholder="Optional"/></div>
+        </div>
+        <div class="row"><button class="btn bp" id="btn-mn-save">Add Product</button></div>
+      </div>
+      <div class="card">
+        <div class="ct">🔧 Quick Adjust Existing Stock</div>
+        <p class="hint">Find a product and adjust its quantity — for damage, returns, corrections.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+          <div class="fg" style="flex:1;min-width:140px;margin-bottom:0"><label class="lbl">Search Product</label><input class="inp" id="adj-q" placeholder="Type product name…"/></div>
+          <div class="fg" style="width:110px;margin-bottom:0"><label class="lbl">Action</label><select class="inp" id="adj-type"><option value="add">＋ Add</option><option value="sub">− Subtract</option><option value="set">＝ Set to</option></select></div>
+          <div class="fg" style="width:80px;margin-bottom:0"><label class="lbl">Qty</label><input class="inp" id="adj-qty" type="number" placeholder="0" min="0"/></div>
+          <button class="btn bp" id="btn-adj" style="margin-bottom:0">Adjust</button>
+        </div>
+        <div id="adj-res" style="margin-top:8px;font-size:12px;display:none"></div>
+      </div>
+    </div>
+
+    <!-- ── PRODUCTS ── -->
+    <div id="p-products" class="hide">
+      <div class="prod-layout">
+        <div class="filter-col">
+          <div class="filter-card">
+            <div class="fct">Filter</div>
+            <div class="fi on" data-ftype="all" id="fi-all">All Products <span class="fi-cnt" id="fi-all-cnt">0</span></div>
+            <div class="fi" data-ftype="status" data-fval="high">🟢 High Stock</div>
+            <div class="fi" data-ftype="status" data-fval="low">🟡 Low Stock</div>
+            <div class="fi" data-ftype="status" data-fval="out">🔴 Out of Stock</div>
+          </div>
+          <div class="filter-card">
+            <div class="fct">Categories</div>
+            <div id="cat-filter-list"></div>
+          </div>
+        </div>
+        <div class="prod-col">
+          <div class="sbar">
+            <div class="swrap"><span class="sico">🔍</span><input class="inp" id="p-search" type="search" placeholder="Search products…"/></div>
+            <button class="btn bs bx" id="btn-csv-export">⬇ CSV</button>
+          </div>
+          <div class="pgrid" id="pgrid"></div>
+          <div class="empty hide" id="empty-p"><div class="emico">📦</div><div class="emtit">No products yet</div><div class="emsub">Use Stock In or Manual tab to add products</div></div>
+          <div class="empty hide" id="no-match-p"><div class="emico">🔎</div><div class="emtit">No results</div><div class="emsub">Try different search or filters</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HISTORY ── -->
+    <div id="p-history" class="hide">
+      <div class="card">
+        <div class="ct">Stock Activity Log</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+          <button class="hfbtn on" data-hf="all">All</button>
+          <button class="hfbtn" data-hf="in">📦 Stock In</button>
+          <button class="hfbtn" data-hf="out">📤 Stock Out</button>
+          <button class="hfbtn" data-hf="adj">🔧 Adjust</button>
+        </div>
+        <div id="hist-list"></div>
+        <div class="empty hide" id="empty-h"><div class="emico">📋</div><div class="emtit">No history yet</div><div class="emsub">Activity will appear here</div></div>
+      </div>
+    </div>
+
+    <!-- ── TEAM ── -->
+    <div id="p-team" class="hide">
+      <div class="card">
+        <div class="ct">Team Members</div>
+        <div id="team-member-list"><div style="font-size:12px;color:var(--muted)">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- ── ADMIN ── -->
+    <div id="p-admin" class="hide">
+      <div class="card">
+        <div class="ct">Add Team Member</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input class="inp" id="adm-email" type="email" placeholder="teammate@gmail.com" style="flex:1;min-width:160px"/>
+          <select class="inp" id="adm-role" style="width:100px"><option value="member">Member</option><option value="admin">Admin</option></select>
+        </div>
+        <div class="row"><button class="btn bp" id="btn-adm-add">Add Member</button></div>
+      </div>
+      <div class="card">
+        <div class="ct">Current Members</div>
+        <div id="adm-member-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT PRODUCT MODAL -->
+<div class="ov" id="edit-ov">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Edit Product</div>
+    <input type="hidden" id="ep-id"/>
+    <div class="g2">
+      <div class="fg"><label class="lbl">Name *</label><input class="inp" id="ep-name"/></div>
+      <div class="fg"><label class="lbl">Quantity</label><input class="inp" id="ep-qty" type="number" min="0"/></div>
+    </div>
+    <div class="g3">
+      <div class="fg"><label class="lbl">Category</label><input class="inp" id="ep-cat" list="ep-cats"/><datalist id="ep-cats"></datalist></div>
+      <div class="fg"><label class="lbl">Subcategory</label><input class="inp" id="ep-sub" list="ep-subs"/><datalist id="ep-subs"></datalist></div>
+      <div class="fg"><label class="lbl">Unit</label><input class="inp" id="ep-unit"/></div>
+    </div>
+    <div class="g2">
+      <div class="fg"><label class="lbl">Low Stock Alert</label><input class="inp" id="ep-thresh" type="number" min="0"/></div>
+      <div class="fg"><label class="lbl">Notes</label><input class="inp" id="ep-notes"/></div>
+    </div>
+    <div class="row">
+      <button class="btn bp" id="btn-ep-save">Save Changes</button>
+      <button class="btn bs" id="btn-ep-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="ov" id="del-ov">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Delete Product</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:18px">Are you sure you want to delete <strong id="del-nm" style="color:var(--txt)"></strong>? This cannot be undone.</p>
+    <div class="row">
+      <button class="btn bd" id="btn-del-ok">Delete</button>
+      <button class="btn bs" id="btn-del-x">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const FB_KEY   = "AIzaSyAEMd20t13Y4TRCJUSrKZgepsy_PssBMcE";
+const FB_PROJ  = "contact-saver-c2333";
+const GCI      = "559759398921-6633m6on57ue0242ufc0jnql8941k1co.apps.googleusercontent.com";
+const FSBASE   = `https://firestore.googleapis.com/v1/projects/${FB_PROJ}/databases/(default)/documents`;
+
+// ── Industry presets ──────────────────────────────────────────────────────────
+const PRESETS = {
+  plant:       { label:'🌿 Plant Shop',   cats:{ 'Plants':['Indoor','Outdoor','Flowering','Succulents','Trees','Herbs'], 'Pots':['Ceramic','Plastic','Terracotta','Hanging','Self-Watering'], 'Soil & Fertilizer':['Potting Mix','Compost','Fertilizer','Bark'], 'Tools':['Watering Cans','Pruning Tools','Sprayers','Gloves'] } },
+  grocery:     { label:'🛒 Grocery',      cats:{ 'Beverages':['Water','Juice','Soft Drinks','Tea & Coffee','Energy Drinks'], 'Snacks':['Chips','Biscuits','Chocolate','Nuts','Candy'], 'Dairy':['Milk','Cheese','Yogurt','Butter','Eggs'], 'Household':['Cleaning','Personal Care','Paper Products','Kitchen'] } },
+  clothing:    { label:'👗 Clothing',     cats:{ 'Tops':['T-Shirts','Shirts','Blouses','Hoodies','Jackets'], 'Bottoms':['Jeans','Trousers','Shorts','Skirts','Leggings'], 'Footwear':['Sneakers','Sandals','Formal','Boots','Slippers'], 'Accessories':['Bags','Belts','Hats','Scarves','Jewellery'] } },
+  pharmacy:    { label:'💊 Pharmacy',     cats:{ 'Medicines':['Antibiotics','Pain Relief','Vitamins','Antihistamines','Digestive'], 'Equipment':['Blood Pressure','Thermometers','Glucose Meters','Bandages'], 'Personal Care':['Skin Care','Hair Care','Dental','Baby Care'], 'Supplements':['Protein','Omega','Multivitamins','Herbal'] } },
+  electronics: { label:'📱 Electronics', cats:{ 'Phones':['Smartphones','Feature Phones','Refurbished'], 'Accessories':['Cases','Chargers','Cables','Earphones','Screen Protectors'], 'Computers':['Laptops','Tablets','Keyboards','Mice','Monitors'], 'Components':['RAM','Storage','Processors','Batteries'] } },
+  custom:      { label:'⚙️ Custom',       cats:{} }
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const el  = id => document.getElementById(id);
+const gv  = id => el(id) ? el(id).value.trim() : '';
+const sv  = (id,v) => { if(el(id)) el(id).value = v || ''; };
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmt = n => Number(n||0).toLocaleString();
+const ini = n => { const p=(n||'').trim().split(' '); return p.length>1?(p[0][0]+p[p.length-1][0]).toUpperCase():(n||'?')[0].toUpperCase(); };
+
+let _toastT;
+function toast(msg, type='ok'){
+  const t = el('toast');
+  t.textContent = msg;
+  t.style.background = type==='err' ? 'var(--red)' : type==='warn' ? '#b8860b' : 'var(--grn)';
+  t.style.display = 'block';
+  clearTimeout(_toastT);
+  _toastT = setTimeout(() => t.style.display='none', 3200);
+}
+function setSt(id, cls, msg){ const s=el(id); if(!s) return; s.className='stbox '+cls; s.textContent=msg; }
+function showScreen(id){
+  ['loading','onboard','auth','app'].forEach(s => {
+    const e = el(s);
+    if(s === id) e.style.display = (s==='auth'||s==='onboard') ? 'flex' : 'block';
+    else e.style.display = 'none';
+  });
+}
+
+function stockSt(qty, thresh){
+  if(qty <= 0) return 'out';
+  if(thresh > 0 && qty <= thresh) return 'low';
+  return 'high';
+}
+function stBadge(qty, thresh){
+  const s = stockSt(qty, thresh);
+  const cls = {high:'s-high', low:'s-low', out:'s-out'};
+  const lbl = {high:'High Stock', low:'Low Stock', out:'Out of Stock'};
+  return `<span class="sbadge ${cls[s]}">${lbl[s]}</span>`;
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let USER=null, ID_TOK=null, REF_TOK=null, TOK_EXP=0;
+let INDUSTRY=null, IS_ADMIN=false, IS_TEAM=false;
+let products=[], historyLog=[];
+let inParsed=[], outParsed=[];
+let delId=null;
+let fStatus=null, fCat=null, fSub=null;
+let histFilter='all';
+
+// ── Firestore REST ────────────────────────────────────────────────────────────
+async function refreshTok(){
+  const r = await fetch(`https://securetoken.googleapis.com/v1/token?key=${FB_KEY}`,{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({grant_type:'refresh_token', refresh_token: REF_TOK})
+  });
+  const d = await r.json();
+  if(d.error) throw new Error(d.error.message);
+  ID_TOK = d.id_token; REF_TOK = d.refresh_token; TOK_EXP = Date.now() + d.expires_in*1000;
+  saveSession(); return ID_TOK;
+}
+async function getTok(){ return (ID_TOK && Date.now() < TOK_EXP-60000) ? ID_TOK : await refreshTok(); }
+
+async function fsGet(path){
+  const tk = await getTok();
+  const r = await fetch(`${FSBASE}/${path}`, {headers:{Authorization:`Bearer ${tk}`}});
+  if(r.status===404) return null;
+  const d = await r.json(); if(d.error) throw new Error(d.error.message); return d;
+}
+async function fsList(path){
+  const tk = await getTok(); let all=[], pt='';
+  while(true){
+    const r = await fetch(`${FSBASE}/${path}?pageSize=300${pt?'&pageToken='+pt:''}`, {headers:{Authorization:`Bearer ${tk}`}});
+    const d = await r.json(); if(d.error) throw new Error(d.error.message);
+    if(d.documents) all.push(...d.documents);
+    if(d.nextPageToken) pt = d.nextPageToken; else break;
+  }
+  return all;
+}
+async function fsSet(path, data){
+  const tk = await getTok();
+  const r = await fetch(`${FSBASE}/${path}`, {method:'PATCH', headers:{Authorization:`Bearer ${tk}`,'Content-Type':'application/json'}, body:JSON.stringify(toDoc(data))});
+  const d = await r.json(); if(d.error) throw new Error(d.error.message); return d;
+}
+async function fsAdd(path, data){
+  const tk = await getTok();
+  const r = await fetch(`${FSBASE}/${path}`, {method:'POST', headers:{Authorization:`Bearer ${tk}`,'Content-Type':'application/json'}, body:JSON.stringify(toDoc(data))});
+  const d = await r.json(); if(d.error) throw new Error(d.error.message); return d;
+}
+async function fsDel(path){ const tk=await getTok(); await fetch(`${FSBASE}/${path}`, {method:'DELETE', headers:{Authorization:`Bearer ${tk}`}}); }
+
+function toVal(v){
+  if(v===null||v===undefined) return {nullValue:null};
+  if(typeof v==='boolean') return {booleanValue:v};
+  if(typeof v==='number') return {doubleValue:v};
+  if(typeof v==='string') return {stringValue:v};
+  if(Array.isArray(v)) return {arrayValue:{values:v.map(toVal)}};
+  if(typeof v==='object') return {mapValue:{fields:Object.fromEntries(Object.entries(v).map(([k,val])=>[k,toVal(val)]))}};
+  return {stringValue:String(v)};
+}
+function toDoc(obj){ return {fields:Object.fromEntries(Object.entries(obj).map(([k,v])=>[k,toVal(v)]))}; }
+function fromVal(v){
+  if(!v) return null;
+  if('nullValue' in v) return null;
+  if('booleanValue' in v) return v.booleanValue;
+  if('integerValue' in v) return Number(v.integerValue);
+  if('doubleValue' in v) return Number(v.doubleValue);
+  if('stringValue' in v) return v.stringValue;
+  if('arrayValue' in v) return (v.arrayValue.values||[]).map(fromVal);
+  if('mapValue' in v) return Object.fromEntries(Object.entries(v.mapValue.fields||{}).map(([k,val])=>[k,fromVal(val)]));
+  return null;
+}
+function fromDoc(doc){
+  if(!doc||!doc.fields) return null;
+  const obj = Object.fromEntries(Object.entries(doc.fields).map(([k,v])=>[k,fromVal(v)]));
+  obj.id = doc.name.split('/').pop(); return obj;
+}
+
+// ── Session ───────────────────────────────────────────────────────────────────
+function saveSession(){
+  try{ localStorage.setItem('ss_v2', JSON.stringify({user:USER, it:ID_TOK, rt:REF_TOK, exp:TOK_EXP, ind:INDUSTRY})); }catch(e){}
+}
+function loadSession(){
+  try{
+    const s = localStorage.getItem('ss_v2'); if(!s) return false;
+    const d = JSON.parse(s); if(!d.rt||!d.user) return false;
+    USER=d.user; ID_TOK=d.it; REF_TOK=d.rt; TOK_EXP=d.exp||0; INDUSTRY=d.ind||null; return true;
+  }catch(e){ return false; }
+}
+function clearSession(){ try{ localStorage.removeItem('ss_v2'); }catch(e){} }
+
+// ── GSI Auth ──────────────────────────────────────────────────────────────────
+function loadGSI(){
+  return new Promise(resolve => {
+    if(window.google?.accounts?.id){ resolve(); return; }
+    const s = document.createElement('script');
+    s.src='https://accounts.google.com/gsi/client'; s.async=true; s.defer=true;
+    s.onload=resolve; s.onerror=resolve; document.head.appendChild(s);
+  });
+}
+async function exchTok(cred, isId){
+  const pb = isId ? `id_token=${encodeURIComponent(cred)}&providerId=google.com`
+                  : `access_token=${encodeURIComponent(cred)}&providerId=google.com`;
+  const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${FB_KEY}`,{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({postBody:pb, requestUri:'http://localhost', returnIdpCredential:true, returnSecureToken:true})
+  });
+  const d = await r.json(); if(d.error) throw new Error(d.error.message); return d;
+}
+async function doSignIn(){
+  await loadGSI();
+  if(!window.google?.accounts) throw new Error('Google Sign-In failed to load. Check your internet connection.');
+  return new Promise((resolve, reject) => {
+    google.accounts.id.initialize({
+      client_id: GCI,
+      callback: async res => { try{ resolve(await exchTok(res.credential, true)); }catch(e){ reject(e); } },
+      cancel_on_tap_outside: false, ux_mode: 'popup'
+    });
+    google.accounts.id.prompt(n => {
+      if(n.isNotDisplayed() || n.isSkippedMoment()){
+        google.accounts.id.cancel();
+        if(!window.google?.accounts?.oauth2){ reject(new Error('Google auth unavailable')); return; }
+        google.accounts.oauth2.initTokenClient({
+          client_id: GCI, scope: 'email profile openid',
+          callback: async res => {
+            if(res.error){ reject(new Error(res.error_description||res.error)); return; }
+            try{ resolve(await exchTok(res.access_token, false)); }catch(e){ reject(e); }
+          },
+          error_callback: e => reject(new Error(e.message||'Auth error'))
+        }).requestAccessToken({prompt:'select_account'});
+      }
+    });
+  });
+}
+
+el('btn-gsi').addEventListener('click', async () => {
+  el('btn-gsi').disabled = true;
+  el('btn-gsi').innerHTML = '<span style="opacity:.6">Opening Google…</span>';
+  el('auth-err').style.display = 'none';
+  try{
+    const d = await doSignIn();
+    USER = {uid:d.localId, email:d.email, displayName:d.displayName||d.email, photoUrl:d.photoUrl||''};
+    ID_TOK=d.idToken; REF_TOK=d.refreshToken; TOK_EXP=Date.now()+3600000;
+    saveSession();
+    // Check if industry already chosen
+    const uDoc = await fsGet(`stock_users/${USER.uid}`);
+    if(uDoc){ const ud=fromDoc(uDoc); if(ud.industry){ INDUSTRY=ud.industry; saveSession(); await initApp(); return; } }
+    showScreen('onboard');
+  }catch(e){
+    el('btn-gsi').disabled = false;
+    el('btn-gsi').innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continue with Google`;
+    el('auth-err').textContent = 'Sign-in failed: ' + e.message;
+    el('auth-err').style.display = 'block';
+  }
+});
+
+el('btn-out').addEventListener('click', () => {
+  clearSession(); USER=null; ID_TOK=null; REF_TOK=null; INDUSTRY=null; products=[]; historyLog=[];
+  if(window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+  showScreen('auth');
+});
+
+// ── Onboarding ────────────────────────────────────────────────────────────────
+let _selInd = null;
+el('ind-grid') && el('ind-grid').addEventListener('click', e => {
+  const card = e.target.closest('.ind-card'); if(!card) return;
+  document.querySelectorAll('.ind-card').forEach(c => c.classList.remove('on'));
+  card.classList.add('on'); _selInd = card.dataset.ind;
+  el('btn-ind-ok').disabled = false;
+});
+el('btn-ind-ok').addEventListener('click', async () => {
+  if(!_selInd) return;
+  INDUSTRY = _selInd; saveSession();
+  await fsSet(`stock_users/${USER.uid}`, {email:USER.email, displayName:USER.displayName, industry:INDUSTRY, createdAt:new Date().toISOString()});
+  await initApp();
+});
+
+// ── App init ──────────────────────────────────────────────────────────────────
+async function initApp(){
+  showScreen('app');
+  setupUserUI();
+  el('t-ind').textContent = PRESETS[INDUSTRY]?.label || 'Custom';
+  await loadProducts();
+  await loadHistory();
+  await checkTeamAccess();
+  switchTab('dash');
+}
+
+function setupUserUI(){
+  const name = USER.displayName || USER.email || 'User';
+  el('uname').textContent = name.split(' ')[0];
+  const av = el('uav');
+  if(USER.photoUrl) av.innerHTML = `<img src="${esc(USER.photoUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  else av.textContent = ini(name);
+  // Populate manual form datalists
+  const preset = PRESETS[INDUSTRY]||PRESETS.custom;
+  el('mn-cats').innerHTML = Object.keys(preset.cats).map(c=>`<option value="${esc(c)}">`).join('');
+}
+
+async function loadProducts(){
+  try{
+    const docs = await fsList(`stock_users/${USER.uid}/products`);
+    products = docs.map(fromDoc).filter(Boolean).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  }catch(e){ console.warn('loadProducts',e); }
+}
+async function loadHistory(){
+  try{
+    const docs = await fsList(`stock_users/${USER.uid}/history`);
+    historyLog = docs.map(fromDoc).filter(Boolean).sort((a,b)=>(b.date||'')>(a.date||'')?1:-1).slice(0,300);
+  }catch(e){ console.warn('loadHistory',e); }
+}
+async function checkTeamAccess(){
+  try{
+    const uDoc = await fsGet(`stock_users/${USER.uid}`);
+    if(uDoc){ const ud=fromDoc(uDoc); if(ud.isAdmin){ IS_ADMIN=true; IS_TEAM=true; } }
+    const tmDoc = await fsGet(`stock_users/${USER.uid}/team/members`);
+    if(tmDoc){
+      const td = fromDoc(tmDoc);
+      const found = (td.list||[]).find(m=>(m.email||'').toLowerCase()===(USER.email||'').toLowerCase());
+      if(found){ IS_TEAM=true; if(found.role==='admin') IS_ADMIN=true; }
+    }
+    if(IS_TEAM) el('tab-team').classList.remove('hide');
+    if(IS_ADMIN) el('tab-admin').classList.remove('hide');
+  }catch(e){}
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+const TABS = ['dash','in','out','manual','products','history','team','admin'];
+function switchTab(id){
+  TABS.forEach(t => {
+    const p=el('p-'+t), b=document.querySelector(`[data-tab="${t}"]`);
+    if(p) p.classList.toggle('hide', t!==id);
+    if(b) b.classList.toggle('on', t===id);
+  });
+  if(id==='dash')     renderDash();
+  if(id==='products') renderProducts();
+  if(id==='history')  renderHistory();
+  if(id==='team')     renderTeam();
+  if(id==='admin')    renderAdmin();
+}
+document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+// ── AI ────────────────────────────────────────────────────────────────────────
+function buildPrompt(mode){
+  const p = PRESETS[INDUSTRY]||PRESETS.custom;
+  const cats = Object.keys(p.cats).length ? JSON.stringify(p.cats) : 'No preset — detect categories from content.';
+  const learned = products.slice(0,30).map(x=>`"${x.name}" → ${x.category} > ${x.subcategory}`).join('; ');
+  return `You are a stock management AI for a ${p.label} business.
+Industry category presets: ${cats}
+Previously learned product mappings (use these for consistency): ${learned||'none yet'}
+
+From the content below, extract ALL products and their quantities.
+This is a stock ${mode==='in'?'INCOMING delivery/invoice':'OUTGOING sales/dispatch'} record.
+
+For each product, return:
+- name: specific product name
+- qty: numeric quantity only
+- unit: pcs / kg / L / etc
+- category: best matching category from presets or detected
+- subcategory: best matching subcategory from presets or detected
+
+Rules:
+- Group identical products (sum their quantities)
+- Use learned mappings when the same product appears again
+- Return ONLY a valid JSON array, no markdown, no explanation
+
+Format: [{"name":"...","qty":0,"unit":"pcs","category":"...","subcategory":"..."}]`;
+}
+
+async function runAI(content, isImage, mode){
+  const key = gv('api-key'); if(!key) throw new Error('Enter your Groq API key first.');
+  const msgs = isImage
+    ? [{role:'user', content:[{type:'image_url', image_url:{url:content}}, {type:'text', text:buildPrompt(mode)}]}]
+    : [{role:'user', content: buildPrompt(mode) + '\n\nContent:\n' + content}];
+  const r = await fetch('https://api.groq.com/openai/v1/chat/completions',{
+    method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+    body: JSON.stringify({model:'meta-llama/llama-4-scout-17b-16e-instruct', max_tokens:2000, messages:msgs})
+  });
+  if(!r.ok){ const e=await r.json(); throw new Error(e.error?.message||'Groq API error '+r.status); }
+  const data = await r.json();
+  const txt = data.choices?.[0]?.message?.content || '[]';
+  return JSON.parse(txt.replace(/```json|```/g,'').trim());
+}
+
+const toDataUrl = f => new Promise((res,rej)=>{ const r=new FileReader(); r.onload=e=>res(e.target.result); r.onerror=rej; r.readAsDataURL(f); });
+
+function groupParsed(list){
+  const m = {};
+  list.forEach(p => {
+    const k = (p.name||'').toLowerCase().trim();
+    if(m[k]){ m[k].qty += Number(p.qty||0); }
+    else { m[k] = {...p, qty:Number(p.qty||0)}; }
+  });
+  return Object.values(m);
+}
+
+// ── Stock IN ──────────────────────────────────────────────────────────────────
+el('btn-kt').addEventListener('click', function(){ const i=el('api-key'); const sh=i.type==='text'; i.type=sh?'password':'text'; this.textContent=sh?'Show':'Hide'; });
+el('btn-in-gal').addEventListener('click', () => el('in-gal-f').click());
+el('btn-in-cam').addEventListener('click', () => el('in-cam-f').click());
+el('in-gal-f').addEventListener('change', async function(){ if(this.files[0]) await doInScan(this.files[0],'image'); this.value=''; });
+el('in-cam-f').addEventListener('change', async function(){ if(this.files[0]) await doInScan(this.files[0],'image'); this.value=''; });
+el('btn-in-detect').addEventListener('click', async () => { const t=gv('in-txt'); if(!t){toast('Paste some text first','warn');return;} await doInScan(t,'text'); });
+
+setupDZ('in-dz', async f => await doInScan(f,'image'));
+
+async function doInScan(src, type){
+  const isImg = type==='image';
+  if(isImg){ el('in-imgpv').src=URL.createObjectURL(src); el('in-imgpv').style.display='block'; }
+  el('in-dzi').innerHTML='<div style="font-size:22px;margin-bottom:6px">⚙️</div><div style="font-weight:600;color:var(--grn)">Scanning with AI…</div>';
+  setSt('in-status','stld','Reading with AI…');
+  try{
+    const content = isImg ? await toDataUrl(src) : src;
+    const raw = await runAI(content, isImg, 'in');
+    inParsed = groupParsed(raw);
+    el('in-dzi').innerHTML='<div class="dz-ico">📷</div><div class="dz-title">Drop another image</div><div class="dz-sub">or use buttons below</div>';
+    if(!inParsed.length){ setSt('in-status','stwn','No products detected. Try a clearer image or paste the text.'); return; }
+    setSt('in-status','stok',`✓ Detected ${inParsed.length} product${inParsed.length!==1?'s':''}. Review below before confirming.`);
+    buildPreview('in', inParsed);
+    el('in-pv-card').classList.remove('hide');
+  }catch(e){
+    el('in-dzi').innerHTML='<div class="dz-ico">📷</div><div class="dz-title">Drop delivery note or invoice photo</div><div class="dz-sub">or use buttons below</div>';
+    setSt('in-status','ster', e.message);
+  }
+}
+
+el('btn-in-confirm').addEventListener('click', async () => {
+  if(!inParsed.length){toast('Nothing to confirm','warn');return;}
+  el('btn-in-confirm').disabled=true; el('btn-in-confirm').textContent='Saving…';
+  try{
+    for(const p of inParsed){
+      const ex = findProduct(p.name);
+      if(ex){
+        await fsSet(`stock_users/${USER.uid}/products/${ex.id}`, {...ex, qty:Number(ex.qty||0)+Number(p.qty), lastUpdated:new Date().toISOString()});
+      } else {
+        await fsAdd(`stock_users/${USER.uid}/products`, {name:p.name, qty:Number(p.qty), unit:p.unit||'pcs', category:p.category||'General', subcategory:p.subcategory||'General', threshold:10, notes:'', createdAt:new Date().toISOString(), lastUpdated:new Date().toISOString()});
+      }
+      await addHistory('in', p.name, p.qty, p.unit||'pcs', p.category, p.subcategory);
+    }
+    await loadProducts(); await loadHistory();
+    toast(`✓ ${inParsed.length} product${inParsed.length!==1?'s':''} added to stock`);
+    inParsed=[]; el('in-pv-card').classList.add('hide'); sv('in-txt','');
+    el('in-imgpv').style.display='none'; el('in-imgpv').src='';
+    el('in-dzi').innerHTML='<div class="dz-ico">📷</div><div class="dz-title">Drop delivery note or invoice photo</div><div class="dz-sub">or use buttons below</div>';
+    setSt('in-status','',''); switchTab('dash');
+  }catch(e){ toast(e.message,'err'); }
+  el('btn-in-confirm').disabled=false; el('btn-in-confirm').textContent='✓ Add to Stock';
+});
+el('btn-in-cancel').addEventListener('click', () => { inParsed=[]; el('in-pv-card').classList.add('hide'); });
+
+// ── Stock OUT ─────────────────────────────────────────────────────────────────
+el('btn-out-gal').addEventListener('click', () => el('out-gal-f').click());
+el('btn-out-cam').addEventListener('click', () => el('out-cam-f').click());
+el('out-gal-f').addEventListener('change', async function(){ if(this.files[0]) await doOutScan(this.files[0],'image'); this.value=''; });
+el('out-cam-f').addEventListener('change', async function(){ if(this.files[0]) await doOutScan(this.files[0],'image'); this.value=''; });
+el('btn-out-detect').addEventListener('click', async () => { const t=gv('out-txt'); if(!t){toast('Paste some text first','warn');return;} await doOutScan(t,'text'); });
+
+setupDZ('out-dz', async f => await doOutScan(f,'image'));
+
+async function doOutScan(src, type){
+  const isImg = type==='image';
+  if(isImg){ el('out-imgpv').src=URL.createObjectURL(src); el('out-imgpv').style.display='block'; }
+  el('out-dzi').innerHTML='<div style="font-size:22px;margin-bottom:6px">⚙️</div><div style="font-weight:600;color:var(--red)">Scanning with AI…</div>';
+  setSt('out-status','stld','Reading with AI…');
+  try{
+    const content = isImg ? await toDataUrl(src) : src;
+    const raw = await runAI(content, isImg, 'out');
+    outParsed = groupParsed(raw);
+    el('out-dzi').innerHTML='<div class="dz-ico">🧾</div><div class="dz-title">Drop sales receipt or dispatch note</div><div class="dz-sub">or use buttons below</div>';
+    if(!outParsed.length){ setSt('out-status','stwn','No products detected.'); return; }
+    setSt('out-status','stok',`✓ Detected ${outParsed.length} product${outParsed.length!==1?'s':''}. Review before deducting.`);
+    buildPreview('out', outParsed);
+    el('out-pv-card').classList.remove('hide');
+  }catch(e){
+    el('out-dzi').innerHTML='<div class="dz-ico">🧾</div><div class="dz-title">Drop sales receipt or dispatch note</div><div class="dz-sub">or use buttons below</div>';
+    setSt('out-status','ster', e.message);
+  }
+}
+
+el('btn-out-confirm').addEventListener('click', async () => {
+  if(!outParsed.length){toast('Nothing to confirm','warn');return;}
+  el('btn-out-confirm').disabled=true; el('btn-out-confirm').textContent='Saving…';
+  try{
+    for(const p of outParsed){
+      const ex = findProduct(p.name);
+      if(ex){
+        const newQty = Math.max(0, Number(ex.qty||0) - Number(p.qty));
+        await fsSet(`stock_users/${USER.uid}/products/${ex.id}`, {...ex, qty:newQty, lastUpdated:new Date().toISOString()});
+      }
+      await addHistory('out', p.name, p.qty, p.unit||'pcs', p.category, p.subcategory);
+    }
+    await loadProducts(); await loadHistory();
+    toast(`✓ ${outParsed.length} product${outParsed.length!==1?'s':''} deducted from stock`);
+    outParsed=[]; el('out-pv-card').classList.add('hide'); sv('out-txt','');
+    el('out-imgpv').style.display='none'; el('out-imgpv').src='';
+    el('out-dzi').innerHTML='<div class="dz-ico">🧾</div><div class="dz-title">Drop sales receipt or dispatch note</div><div class="dz-sub">or use buttons below</div>';
+    setSt('out-status','',''); switchTab('dash');
+  }catch(e){ toast(e.message,'err'); }
+  el('btn-out-confirm').disabled=false; el('btn-out-confirm').textContent='✓ Deduct from Stock';
+});
+el('btn-out-cancel').addEventListener('click', () => { outParsed=[]; el('out-pv-card').classList.add('hide'); });
+
+// ── Preview builder ───────────────────────────────────────────────────────────
+function buildPreview(mode, parsed){
+  const container = el(`${mode}-pv-list`);
+  el(`${mode}-pv-cnt`).textContent = parsed.length;
+  const preset = PRESETS[INDUSTRY]||PRESETS.custom;
+  const allCats = Object.keys(preset.cats);
+  const existingCats = [...new Set(products.map(p=>p.category).filter(Boolean))];
+  const cats = [...new Set([...allCats, ...existingCats])];
+
+  container.innerHTML = parsed.map((p,i) => {
+    const ex = findProduct(p.name);
+    const afterQty = mode==='in' ? (ex ? Number(ex.qty||0)+p.qty : p.qty) : (ex ? Math.max(0,Number(ex.qty||0)-p.qty) : 0);
+    const insufficient = mode==='out' && ex && Number(ex.qty||0) < p.qty;
+    const catOpts = cats.map(c=>`<option value="${esc(c)}">`).join('');
+    const subOpts = (preset.cats[p.category]||[]).map(s=>`<option value="${esc(s)}">`).join('');
+
+    return `<div class="pv-item" id="pvi-${mode}-${i}">
+      <div class="pv-top">
+        <div>
+          <div class="pv-name">${esc(p.name)}</div>
+          ${ex ? `<div class="pv-existing">Current stock: ${fmt(ex.qty)} ${ex.unit||'pcs'}</div>` : `<div class="pv-new">✦ New product</div>`}
+        </div>
+        <div style="display:flex;align-items:center;gap:7px">
+          <span class="pv-qty ${mode==='in'?'qin':'qout'}">${mode==='in'?'+':'−'}${fmt(p.qty)} ${p.unit||'pcs'}</span>
+          <button class="pv-remove" data-mode="${mode}" data-i="${i}">✕</button>
+        </div>
+      </div>
+      <div class="pv-path">
+        <span class="pv-tag">${esc(p.category||'Unknown')}</span>
+        <span class="pv-arr">→</span>
+        <span class="pv-tag">${esc(p.subcategory||'General')}</span>
+        <span class="pv-arr">→</span>
+        <span class="pv-tag">${esc(p.name)}</span>
+        <button class="btn bs bx" onclick="toggleEdit('${mode}',${i})" style="font-size:10px">✏ Edit</button>
+      </div>
+      ${mode==='out' ? `<div class="pv-after ${insufficient?'danger':afterQty===0?'warn':'ok'}">
+        After deduction: ${insufficient?'⚠ Insufficient stock! ('+fmt(ex?.qty||0)+' available)':fmt(afterQty)+' '+((ex?.unit)||'pcs')+' remaining'}
+      </div>` : ''}
+      <div class="pv-edit-form" id="pvef-${mode}-${i}">
+        <div class="g3" style="gap:7px">
+          <div class="fg" style="margin-bottom:7px">
+            <label class="lbl">Category</label>
+            <input class="inp" id="pvcat-${mode}-${i}" value="${esc(p.category||'')}" list="pvcats-${mode}-${i}" style="font-size:12px;padding:6px 9px" oninput="updateSubDL('${mode}',${i})"/>
+            <datalist id="pvcats-${mode}-${i}">${catOpts}</datalist>
+          </div>
+          <div class="fg" style="margin-bottom:7px">
+            <label class="lbl">Subcategory</label>
+            <input class="inp" id="pvsub-${mode}-${i}" value="${esc(p.subcategory||'')}" list="pvsubs-${mode}-${i}" style="font-size:12px;padding:6px 9px"/>
+            <datalist id="pvsubs-${mode}-${i}">${subOpts}</datalist>
+          </div>
+          <div class="fg" style="margin-bottom:7px">
+            <label class="lbl">Product Name</label>
+            <input class="inp" id="pvname-${mode}-${i}" value="${esc(p.name)}" style="font-size:12px;padding:6px 9px"/>
+          </div>
+        </div>
+        <div class="g2" style="gap:7px">
+          <div class="fg" style="margin-bottom:0">
+            <label class="lbl">Quantity</label>
+            <input class="inp" id="pvqty-${mode}-${i}" type="number" value="${p.qty}" min="0" style="font-size:12px;padding:6px 9px"/>
+          </div>
+          <div class="fg" style="margin-bottom:0">
+            <label class="lbl">Unit</label>
+            <input class="inp" id="pvunit-${mode}-${i}" value="${esc(p.unit||'pcs')}" style="font-size:12px;padding:6px 9px"/>
+          </div>
+        </div>
+        <div class="row" style="margin-top:9px">
+          <button class="btn bp bx" onclick="applyEdit('${mode}',${i})">✓ Apply</button>
+          <button class="btn bs bx" onclick="toggleEdit('${mode}',${i})">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Remove buttons
+  container.querySelectorAll('.pv-remove').forEach(btn => btn.addEventListener('click', () => {
+    const i=parseInt(btn.dataset.i), m=btn.dataset.mode;
+    if(m==='in') inParsed.splice(i,1); else outParsed.splice(i,1);
+    el(`pvi-${m}-${i}`).remove();
+    el(`${m}-pv-cnt`).textContent = (m==='in'?inParsed:outParsed).length;
+  }));
+}
+
+window.toggleEdit = (mode,i) => { el(`pvef-${mode}-${i}`)?.classList.toggle('open'); };
+window.updateSubDL = (mode,i) => {
+  const cat = el(`pvcat-${mode}-${i}`)?.value;
+  const subs = (PRESETS[INDUSTRY]?.cats||{})[cat]||[];
+  const dl = el(`pvsubs-${mode}-${i}`);
+  if(dl) dl.innerHTML = subs.map(s=>`<option value="${esc(s)}">`).join('');
+};
+window.applyEdit = (mode,i) => {
+  const arr = mode==='in' ? inParsed : outParsed;
+  arr[i].name     = el(`pvname-${mode}-${i}`)?.value.trim() || arr[i].name;
+  arr[i].category = el(`pvcat-${mode}-${i}`)?.value.trim()  || arr[i].category;
+  arr[i].subcategory = el(`pvsub-${mode}-${i}`)?.value.trim() || arr[i].subcategory;
+  arr[i].qty  = Number(el(`pvqty-${mode}-${i}`)?.value)  || arr[i].qty;
+  arr[i].unit = el(`pvunit-${mode}-${i}`)?.value.trim()  || arr[i].unit;
+  buildPreview(mode, arr);
+};
+
+// ── Manual ────────────────────────────────────────────────────────────────────
+el('mn-cat').addEventListener('input', () => {
+  const cat = gv('mn-cat');
+  const subs = (PRESETS[INDUSTRY]?.cats||{})[cat]||[];
+  el('mn-subs').innerHTML = subs.map(s=>`<option value="${esc(s)}">`).join('');
+});
+el('btn-mn-save').addEventListener('click', async () => {
+  const name=gv('mn-name'), qty=gv('mn-qty'); let ok=true;
+  if(!name){ el('ferr-mn').style.display='block'; ok=false; } else el('ferr-mn').style.display='none';
+  if(qty==='')  { el('ferr-mq').style.display='block'; ok=false; } else el('ferr-mq').style.display='none';
+  if(!ok) return;
+  if(findProduct(name)){ toast('Product already exists','warn'); return; }
+  try{
+    await fsAdd(`stock_users/${USER.uid}/products`, {
+      name, qty:Number(qty), unit:gv('mn-unit')||'pcs',
+      category:gv('mn-cat')||'General', subcategory:gv('mn-sub')||'General',
+      threshold:Number(gv('mn-thresh'))||10, notes:gv('mn-notes'),
+      createdAt:new Date().toISOString(), lastUpdated:new Date().toISOString()
+    });
+    await addHistory('in', name, Number(qty), gv('mn-unit')||'pcs', gv('mn-cat'), gv('mn-sub'));
+    await loadProducts(); await loadHistory();
+    ['mn-name','mn-qty','mn-cat','mn-sub','mn-unit','mn-thresh','mn-notes'].forEach(id=>sv(id,''));
+    toast('✓ '+name+' added');
+  }catch(e){ toast(e.message,'err'); }
+});
+
+el('btn-adj').addEventListener('click', async () => {
+  const q=gv('adj-q').toLowerCase(), qty=Number(gv('adj-qty')), type=el('adj-type').value;
+  if(!q||isNaN(qty)||qty<0){ toast('Fill product name and quantity','warn'); return; }
+  const p = products.find(x=>(x.name||'').toLowerCase().includes(q));
+  if(!p){ el('adj-res').style.display='block'; el('adj-res').style.color='var(--red)'; el('adj-res').textContent='Product not found.'; return; }
+  let nq = Number(p.qty||0);
+  if(type==='add') nq+=qty;
+  else if(type==='sub') nq=Math.max(0,nq-qty);
+  else nq=qty;
+  await fsSet(`stock_users/${USER.uid}/products/${p.id}`, {...p, qty:nq, lastUpdated:new Date().toISOString()});
+  await addHistory('adj', p.name, qty, p.unit||'pcs', p.category, p.subcategory);
+  await loadProducts(); await loadHistory();
+  el('adj-res').style.display='block'; el('adj-res').style.color='var(--grn)';
+  el('adj-res').textContent=`✓ ${p.name}: ${fmt(p.qty)} → ${fmt(nq)} ${p.unit||'pcs'}`;
+  toast('✓ Stock adjusted');
+});
+
+// ── Products render ───────────────────────────────────────────────────────────
+function renderProducts(){
+  const q = (el('p-search')?.value||'').toLowerCase();
+
+  // Apply filters
+  let filtered = products.filter(p => {
+    if(fStatus){ const s=stockSt(p.qty,p.threshold); if(s!==fStatus) return false; }
+    if(fCat && p.category!==fCat) return false;
+    if(fSub && p.subcategory!==fSub) return false;
+    if(q && !(p.name||'').toLowerCase().includes(q) && !(p.category||'').toLowerCase().includes(q) && !(p.subcategory||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  el('empty-p').classList.toggle('hide', products.length>0);
+  el('no-match-p').classList.toggle('hide', !(products.length>0 && filtered.length===0));
+
+  el('pgrid').innerHTML = filtered.map(p => {
+    const s = stockSt(p.qty, p.threshold);
+    return `<div class="pc ${s==='low'?'low-stock':s==='out'?'out-stock':''}">
+      <div class="pc-path">${esc(p.category||'General')} › ${esc(p.subcategory||'General')}</div>
+      <div class="pc-name">${esc(p.name)}</div>
+      <div style="margin-bottom:5px">${stBadge(p.qty,p.threshold)}</div>
+      <div class="pc-qty">${fmt(p.qty)}</div>
+      <div class="pc-unit">${esc(p.unit||'pcs')}</div>
+      ${p.threshold ? `<div class="pc-thresh ${s==='out'?'danger':s==='low'?'warn':''}">Alert at: ${fmt(p.threshold)} ${p.unit||'pcs'}</div>` : ''}
+      ${p.notes ? `<div style="font-size:10px;color:var(--muted);margin-top:4px">${esc(p.notes)}</div>` : ''}
+      <div class="pc-acts">
+        <button class="btn bs bx" data-edit="${esc(p.id)}">Edit</button>
+        <button class="btn bd bx" data-del="${esc(p.id)}">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  el('pgrid').querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openEditModal(b.dataset.edit)));
+  el('pgrid').querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => openDelModal(b.dataset.del)));
+
+  buildCatFilters();
+  el('fi-all-cnt').textContent = products.length;
+}
+
+function buildCatFilters(){
+  // Only show categories with at least 1 product in stock (qty > 0)
+  const cats = {};
+  products.filter(p => p.qty > 0).forEach(p => {
+    const c=p.category||'General', s=p.subcategory||'General';
+    if(!cats[c]) cats[c] = {};
+    cats[c][s] = (cats[c][s]||0) + 1;
+  });
+  const list = el('cat-filter-list');
+  list.innerHTML = Object.entries(cats).map(([cat,subs]) => {
+    const total = Object.values(subs).reduce((a,b)=>a+b,0);
+    const subHtml = Object.entries(subs).map(([sub,cnt]) =>
+      `<div class="fi sub${fSub===sub?' on':''}" data-fcat="${esc(cat)}" data-fsub="${esc(sub)}">${esc(sub)} <span class="fi-cnt">${cnt}</span></div>`
+    ).join('');
+    return `<div class="fi${fCat===cat&&!fSub?' on':''}" data-fcat="${esc(cat)}">${esc(cat)} <span class="fi-cnt">${total}</span></div>${subHtml}`;
+  }).join('');
+
+  list.querySelectorAll('[data-fcat]').forEach(item => {
+    item.addEventListener('click', () => {
+      const cat=item.dataset.fcat, sub=item.dataset.fsub;
+      document.querySelectorAll('.fi').forEach(f=>f.classList.remove('on'));
+      if(sub){ fCat=cat; fSub=sub; }
+      else { if(fCat===cat&&!fSub){ fCat=null; fSub=null; } else { fCat=cat; fSub=null; } }
+      fStatus=null; item.classList.add('on');
+      renderProducts();
+    });
+  });
+}
+
+// Status/All filter clicks
+document.addEventListener('click', e => {
+  const fi = e.target.closest('.fi[data-ftype]'); if(!fi) return;
+  document.querySelectorAll('.fi').forEach(f=>f.classList.remove('on')); fi.classList.add('on');
+  const ft=fi.dataset.ftype, fv=fi.dataset.fval;
+  if(ft==='all'){ fStatus=null; fCat=null; fSub=null; }
+  else if(ft==='status'){ fStatus=fv; fCat=null; fSub=null; }
+  renderProducts();
+});
+
+el('p-search').addEventListener('input', renderProducts);
+el('btn-csv-export').addEventListener('click', () => {
+  const h = 'Name,Category,Subcategory,Qty,Unit,Status,Alert Threshold,Notes';
+  const rows = products.map(p => [p.name||'',p.category||'',p.subcategory||'',p.qty||0,p.unit||'pcs',stockSt(p.qty,p.threshold),p.threshold||'',p.notes||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+  const csv = [h,...rows].join('\n');
+  const a = document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='stock.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast('✓ CSV downloaded');
+});
+
+// ── Edit product modal ────────────────────────────────────────────────────────
+function openEditModal(id){
+  const p = products.find(x=>x.id===id); if(!p) return;
+  sv('ep-id',id); sv('ep-name',p.name); sv('ep-qty',p.qty); sv('ep-cat',p.category||''); sv('ep-sub',p.subcategory||''); sv('ep-unit',p.unit||'pcs'); sv('ep-thresh',p.threshold||''); sv('ep-notes',p.notes||'');
+  const cats = [...new Set(products.map(p=>p.category).filter(Boolean))];
+  el('ep-cats').innerHTML = cats.map(c=>`<option value="${esc(c)}">`).join('');
+  const subs = [...new Set(products.filter(x=>x.category===(p.category||'')).map(x=>x.subcategory).filter(Boolean))];
+  el('ep-subs').innerHTML = subs.map(s=>`<option value="${esc(s)}">`).join('');
+  el('edit-ov').classList.add('open');
+}
+el('btn-ep-save').addEventListener('click', async () => {
+  const id=gv('ep-id'), name=gv('ep-name'); if(!name||!id) return;
+  const p = products.find(x=>x.id===id); if(!p) return;
+  await fsSet(`stock_users/${USER.uid}/products/${id}`, {...p, name, qty:Number(gv('ep-qty')||0), category:gv('ep-cat')||p.category, subcategory:gv('ep-sub')||p.subcategory, unit:gv('ep-unit')||'pcs', threshold:Number(gv('ep-thresh'))||p.threshold||10, notes:gv('ep-notes'), lastUpdated:new Date().toISOString()});
+  el('edit-ov').classList.remove('open');
+  await loadProducts(); renderProducts(); toast('✓ Updated');
+});
+el('btn-ep-cancel').addEventListener('click', () => el('edit-ov').classList.remove('open'));
+el('edit-ov').addEventListener('click', e => { if(e.target===el('edit-ov')) el('edit-ov').classList.remove('open'); });
+
+// ── Delete modal ──────────────────────────────────────────────────────────────
+function openDelModal(id){
+  const p=products.find(x=>x.id===id); if(!p) return;
+  delId=id; el('del-nm').textContent=p.name; el('del-ov').classList.add('open');
+}
+el('btn-del-ok').addEventListener('click', async () => {
+  if(!delId) return;
+  await fsDel(`stock_users/${USER.uid}/products/${delId}`);
+  el('del-ov').classList.remove('open'); await loadProducts(); renderProducts(); toast('Deleted','err');
+});
+el('btn-del-x').addEventListener('click', () => el('del-ov').classList.remove('open'));
+el('del-ov').addEventListener('click', e => { if(e.target===el('del-ov')) el('del-ov').classList.remove('open'); });
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function renderDash(){
+  const high=products.filter(p=>stockSt(p.qty,p.threshold)==='high').length;
+  const low=products.filter(p=>stockSt(p.qty,p.threshold)==='low').length;
+  const out=products.filter(p=>stockSt(p.qty,p.threshold)==='out').length;
+  el('d-total').textContent = products.length;
+  el('d-high').textContent  = high;
+  el('d-low').textContent   = low;
+  el('d-out').textContent   = out;
+
+  // Alert bar
+  const ab = el('alert-bar'), at = el('alert-txt');
+  if(low+out > 0){
+    ab.classList.add('show');
+    at.textContent = `${out>0?out+' out of stock':''} ${out>0&&low>0?'·':''} ${low>0?low+' running low':''}`.trim();
+  } else { ab.classList.remove('show'); }
+
+  // Low stock list
+  const ll = el('d-low-list');
+  const alerts = products.filter(p=>stockSt(p.qty,p.threshold)!=='high').sort((a,b)=>stockSt(a.qty,a.threshold)==='out'?-1:1);
+  ll.innerHTML = alerts.length ? alerts.slice(0,8).map(p=>`
+    <div class="low-item">
+      <span class="low-name">${esc(p.name)}</span>
+      <span class="low-qty" style="color:${p.qty<=0?'var(--red)':'var(--gold)'}">${fmt(p.qty)} ${p.unit||'pcs'}</span>
+      ${stBadge(p.qty,p.threshold)}
+    </div>`).join('') : '<div class="empty" style="padding:12px 0"><div class="emsub">All products well stocked 🎉</div></div>';
+
+  // Recent activity
+  const ra = el('d-recent');
+  const icoMap = {in:'📦',out:'📤',adj:'🔧'};
+  ra.innerHTML = historyLog.slice(0,8).map(h=>`
+    <div class="act-item">
+      <div class="act-ico ${h.type}">${icoMap[h.type]||'📋'}</div>
+      <div style="flex:1;min-width:0">
+        <div class="act-name">${esc(h.name)}</div>
+        <div class="act-meta">${h.by||''} · ${h.date?new Date(h.date).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):''}</div>
+      </div>
+      <div class="act-qty ${h.type}">${h.type==='in'?'+':h.type==='out'?'−':'±'}${fmt(h.qty)} ${h.unit||'pcs'}</div>
+    </div>`).join('') || '<div class="empty" style="padding:12px 0"><div class="emsub">No activity yet</div></div>';
+
+  // Category overview
+  const cats = {};
+  products.forEach(p => { cats[p.category||'General'] = (cats[p.category||'General']||0) + 1; });
+  const sortedCats = Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+  const maxCat = sortedCats[0]?.[1] || 1;
+  el('d-cats').innerHTML = sortedCats.length ? sortedCats.map(([cat,cnt])=>`
+    <div class="cat-bar-row">
+      <div class="cat-bar-lbl">${esc(cat)}</div>
+      <div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round(cnt/maxCat*100)}%"></div></div>
+      <div class="cat-bar-cnt">${cnt}</div>
+    </div>`).join('') : '<div style="font-size:12px;color:var(--muted)">No products yet</div>';
+}
+
+// ── History ───────────────────────────────────────────────────────────────────
+function renderHistory(){
+  const icoMap = {in:'📦',out:'📤',adj:'🔧'};
+  const filtered = histFilter==='all' ? historyLog : historyLog.filter(h=>h.type===histFilter);
+  const hl = el('hist-list');
+  el('empty-h').classList.toggle('hide', historyLog.length>0);
+  hl.innerHTML = filtered.map(h=>`
+    <div class="hist-item">
+      <div class="hist-ico ${h.type}">${icoMap[h.type]||'📋'}</div>
+      <div class="hist-info">
+        <div class="hist-name">${esc(h.name)}</div>
+        <div class="hist-meta">${esc(h.category||'')}${h.subcategory?' › '+esc(h.subcategory):''} · by ${esc(h.by||'—')} · ${h.date?new Date(h.date).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}):''}</div>
+      </div>
+      <div class="hist-qty ${h.type}">${h.type==='in'?'+':h.type==='out'?'−':'±'}${fmt(h.qty)} ${h.unit||'pcs'}</div>
+    </div>`).join('');
+}
+document.querySelectorAll('.hfbtn').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('.hfbtn').forEach(b=>b.classList.remove('on')); btn.classList.add('on');
+  histFilter = btn.dataset.hf; renderHistory();
+}));
+
+// ── Team ──────────────────────────────────────────────────────────────────────
+async function renderTeam(){
+  try{
+    const doc = await fsGet(`stock_users/${USER.uid}/team/members`);
+    const members = doc ? (fromDoc(doc)?.list||[]) : [];
+    el('team-member-list').innerHTML = members.length
+      ? members.map(m=>`<div class="member-row"><div class="member-email">${esc(m.email)}</div><div class="role-badge ${m.role==='admin'?'rb-admin':'rb-member'}">${m.role}</div></div>`).join('')
+      : '<div style="font-size:12px;color:var(--muted)">No team members yet. Admin can add members.</div>';
+  }catch(e){ el('team-member-list').innerHTML='<div style="font-size:12px;color:var(--red)">Error loading members</div>'; }
+}
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
+async function renderAdmin(){
+  try{
+    const doc = await fsGet(`stock_users/${USER.uid}/team/members`);
+    const members = doc ? (fromDoc(doc)?.list||[]) : [];
+    el('adm-member-list').innerHTML = members.length
+      ? members.map((m,i)=>`<div class="member-row"><div class="member-email">${esc(m.email)}</div><div class="role-badge ${m.role==='admin'?'rb-admin':'rb-member'}">${m.role}</div>${m.email!==USER.email?`<button class="btn bd bx" data-rm="${i}">Remove</button>`:''}</div>`).join('')
+      : '<div style="font-size:12px;color:var(--muted)">No members yet.</div>';
+    el('adm-member-list').querySelectorAll('[data-rm]').forEach(btn => btn.addEventListener('click', async () => {
+      const idx=parseInt(btn.dataset.rm);
+      const doc=await fsGet(`stock_users/${USER.uid}/team/members`); if(!doc) return;
+      const d=fromDoc(doc); const list=d.list||[]; list.splice(idx,1);
+      await fsSet(`stock_users/${USER.uid}/team/members`, {list});
+      toast('Member removed'); renderAdmin(); renderTeam();
+    }));
+  }catch(e){}
+}
+el('btn-adm-add').addEventListener('click', async () => {
+  if(!IS_ADMIN){ toast('Not authorized','err'); return; }
+  const email=gv('adm-email'), role=el('adm-role').value; if(!email){ toast('Enter email','warn'); return; }
+  const doc=await fsGet(`stock_users/${USER.uid}/team/members`);
+  const d=doc?fromDoc(doc):{list:[]}; const list=d.list||[];
+  if(list.find(m=>m.email===email)){ toast('Already a member','warn'); return; }
+  list.push({email,role}); await fsSet(`stock_users/${USER.uid}/team/members`, {list});
+  sv('adm-email',''); toast('✓ Member added'); renderAdmin(); renderTeam();
+});
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function findProduct(name){ return products.find(p=>(p.name||'').toLowerCase().trim()===(name||'').toLowerCase().trim()); }
+
+async function addHistory(type, name, qty, unit, category, subcategory){
+  await fsAdd(`stock_users/${USER.uid}/history`, {
+    type, name, qty:Number(qty), unit:unit||'pcs',
+    category:category||'', subcategory:subcategory||'',
+    by: USER.displayName||USER.email, date:new Date().toISOString()
+  });
+}
+
+function setupDZ(id, onFile){
+  const dz = el(id); if(!dz) return;
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag'); if(e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]); });
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+(async () => {
+  if(loadSession()){
+    try{
+      el('load-msg').textContent = 'Loading your stock…';
+      await getTok();
+      await initApp();
+    }catch(e){
+      clearSession(); showScreen('auth');
+    }
+  } else {
+    showScreen('auth');
+  }
+})();
+</script>
+</body>
+</html>
